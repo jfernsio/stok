@@ -3,17 +3,15 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-func DBConnection(env *Env) *gorm.DB {
-	uri := fmt.Sprintf(`
-		host=%s user=%s dbname=%s password=%s sslmode=%s port=5432`,
-		env.DB_HOST, env.DB_USER, env.DB_NAME, env.DB_PASSWORD, env.DB_SSLMODE,
-	)
+func DBConnection() *gorm.DB {
+	uri := os.Getenv("DATABASE_URL")
 
 	db, err := gorm.Open(postgres.Open(uri), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),

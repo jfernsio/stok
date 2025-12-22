@@ -1,78 +1,51 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
+	"log"
+	"net/http"
 	"os"
-	"sync"
 
-	"github.com/gorilla/websocket"
-	"gorm.io/gorm"
+	"github.com/joho/godotenv"
 )
 
-var (
-	symbols = []string{"AAPL", "AMZN", "TSLA", "GOOGL", "NFLX", "PYPL"}
-
-	temCandles = make(map[string]*TempCandle)
-	mu sync.Mutex
-
-)
-
+func corsHandler(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		h(w, r)
+	}
+}
 
 func main() {
-	env := os.Getenv()
-	db := DBConnection(env)
+	_ = godotenv.Load()
 
-	//connect to finhub websckt
-	finhubWSCon := connectToFinhub(env)
-	defer finhubWSCon.Close(env)
-	//handle finhub ws incoming msgs
-	go handleFinhubMesgs(finhubWSCon,db)
-	//broadcast candle updates to all clients
-
-
-	//endpoints
-	//conn to ws
-	//fetch all past candels for all symbols
-	//fetch past candels for single symbol
-	 
-}
-
-func connectToFinhub(env *Env) *websocket.Conn {
-	ws, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("wss://ws.finnhub.io?token=%s", env.API_KEY), nil)
-	if err != nil {
-		panic(err)
+	PORT := os.Getenv("PORT")
+	if PORT == "" {
+		PORT = "8080"
 	}
 
-	for _, s := range symbols {
-		msg, _ := json.Marshal(map[string]interface{}{"type": "subscribe", "symbol": s})
-		ws.WriteMessage(websocket.TextMessage, msg)
-	}
+	db := DBConnection()
 
-	return ws
-}
+	// Finnhub WS
+	finnhubWS := connectToFinnhub()
+	defer finnhubWS.Close()
 
-func handleFinhubMesgs(ws *websocket.Conn, db *gorm.DB) {
-	finnhubMessage := &FinnhubMessage{}
+	go handleFinnhubMessages(finnhubWS, db)
+	go broadcastUpdates()
 
-	for {
-		if err := ws.ReadJSON(finnhubMessage); err != nil {
-			fmt.Println("Error reading message: ",err)
-			continue
-		}
+	http.HandleFunc("/ws", WSHandler)
+	http.HandleFunc("/stocks-history", corsHandler(func(w http.ResponseWriter, r *http.Request) {
+		StocksHistoryHandler(w, r, db)
+	}))
+	http.HandleFunc("/stock-candles", corsHandler(func(w http.ResponseWriter, r *http.Request) {
+		CandlesHandler(w, r, db)
+	}))
 
-		//only try to process the message data if type trade
-		if (finnhubMessage.Type == "trade" ) {
-			for _,trade := range finnhubMessage.Data {
-				//proricess trade data
-				processTradeData(trade,db)
-			}
-		}
-	}
-}
-
-func processTradeData( trade *TradeData,db *gorm.DB) {
-	//prorext go rountines
-	mu.Lock()
-	defer mu.Unlock()
+	log.Println("🚀 Server running on port", PORT)
+	log.Fatal(http.ListenAndServe(":"+PORT, nil))
 }

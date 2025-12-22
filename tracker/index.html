@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Stonks Lab – Live Candles</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-900 text-white min-h-screen p-6">
+
+  <div class="max-w-4xl mx-auto space-y-6">
+
+    <h1 class="text-3xl font-bold">📈 Stonks Lab – Live Market</h1>
+
+    <!-- Symbol Selector -->
+    <div class="flex gap-4">
+      <select id="symbolSelect" class="bg-slate-800 p-2 rounded">
+        <option value="AAPL">AAPL</option>
+        <option value="TSLA">TSLA</option>
+        <option value="AMZN">AMZN</option>
+        <option value="GOOGL">GOOGL</option>
+      </select>
+
+      <button id="connectBtn" class="bg-blue-600 px-4 py-2 rounded">
+        Connect
+      </button>
+    </div>
+
+    <!-- Live Candle -->
+    <div class="bg-slate-800 rounded p-4">
+      <h2 class="text-xl mb-2">Live Candle</h2>
+      <div id="liveCandle" class="grid grid-cols-2 gap-2 text-sm"></div>
+    </div>
+
+    <!-- History -->
+    <div class="bg-slate-800 rounded p-4">
+      <h2 class="text-xl mb-2">Recent Candles</h2>
+      <table class="w-full text-sm">
+        <thead class="text-left text-slate-400">
+          <tr>
+            <th>Time</th>
+            <th>O</th>
+            <th>H</th>
+            <th>L</th>
+            <th>C</th>
+            <th>Vol</th>
+          </tr>
+        </thead>
+        <tbody id="historyTable"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+<script src="app.js"></script>
+</body>
+</html>

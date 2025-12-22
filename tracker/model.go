@@ -2,14 +2,29 @@ package main
 
 import "time"
 
-// Candle struct represents a single OHLC (High, Low, Open, Close) candle
+type FinnhubMessage struct {
+	Type string      `json:"type"`
+	Data []TradeData `json:"data"`
+}
+
+type TradeData struct {
+	Symbol    string  `json:"s"`
+	Price     float64 `json:"p"`
+	Volume    int     `json:"v"`
+	Timestamp int64   `json:"t"`
+}
+
 type Candle struct {
+	ID        uint      `gorm:"primaryKey"`
 	Symbol    string    `json:"symbol"`
+	OpenTime  time.Time `json:"openTime"`
+	CloseTime time.Time `json:"closeTime"`
 	Open      float64   `json:"open"`
 	Close     float64   `json:"close"`
 	High      float64   `json:"high"`
 	Low       float64   `json:"low"`
-	Timestamp time.Time `json:"timestamp"`
+	Volume    float64   `json:"volume"`
+	CreatedAt time.Time
 }
 
 type TempCandle struct {
@@ -23,14 +38,27 @@ type TempCandle struct {
 	Volume     float64
 }
 
-type FinnhubMessage struct {
-	Data []TradeData `json:"data"`
-	Type string      `json:"type"` // ping | trade
+func (t *TempCandle) toCandle() *Candle {
+	return &Candle{
+		Symbol:    t.Symbol,
+		OpenTime:  t.OpenTime,
+		CloseTime: t.CloseTime,
+		Open:      t.OpenPrice,
+		Close:     t.ClosePrice,
+		High:      t.HighPrice,
+		Low:       t.LowPrice,
+		Volume:    t.Volume,
+	}
 }
-type TradeData struct {
-	Close     []string `json:"c"`
-	Price     float64  `json:"p"`
-	Symbol    string   `json:"s"`
-	Timestamp int64    `json:"t"`
-	Volume    int      `json:"v"`
+
+type UpdateType string
+
+const (
+	Live   UpdateType = "LIVE"
+	Closed UpdateType = "CLOSED"
+)
+
+type BroadcastMessage struct {
+	UpdateType UpdateType `json:"type"`
+	Candle     *Candle    `json:"candle"`
 }
